@@ -16,7 +16,7 @@ echo "rdb信息"
 /pitrix/lib/pitrix-scripts/exec_sql -d zone -c "select owner,rdb_engine,engine_version from rdb where status = 'active' order by 1;" > $INFO_DIR/rdb
 echo "cache信息"
 /pitrix/lib/pitrix-scripts/exec_sql -d zone -c "select owner,cache_id,cache_type from cache where status = 'active' order by 1;" > $INFO_DIR/cache
-
+/pitrix/lib/pitrix-scripts/exec_sql -d zone -c "select image_id,image_name,owner from image where status = 'available' order by 3;" > $INFO_DIR/image
 echo "整理"
 
 RESULT_DIR=/root/getresource/assembly/result
@@ -35,5 +35,5 @@ grep 5.6 rdb |grep mysql |uniq -c|awk -F"|" '{print $3"\t""rdb""\t""mysql5.6""\t
 grep 5.7 rdb |grep mysql |uniq -c|awk -F"|" '{print $3"\t""rdb""\t""mysql5.7""\t"$1}' >> $RESULT_DIR/rdb.txt
 grep 9.3 rdb |grep psql |uniq -c|awk -F"|" '{print $3"\t""rdb""\t""psql9.3""\t"$1}' >> $RESULT_DIR/rdb.txt
 grep 9.4 rdb |grep psql |uniq -c|awk -F"|" '{print $3"\t""rdb""\t""psql9.4""\t"$1}' >> $RESULT_DIR/rdb.txt
-
+egrep -v 'rvg|rdb-|mongo|loadbalancer|spark|redis|nas|vxnetmgr|router|cache|citrixnsvpx|ks-|s2|kafka|zookeeper|bigdata' image |awk -F"|" '{print $2"\t"$3"\t"$4}' >> $RESULT_DIR/image-${ZONE_ID}.txt
 /root/getresource/sed.sh
