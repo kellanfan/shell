@@ -4,10 +4,10 @@ SCRIPT=`readlink -f $0`
 CWD=`dirname $SCRIPT`
 cd $CWD
 usage() {
-    echo "Usage: $(basename $0) <node> <src> <dst>"
-    echo "   Ex: $(basename $0) webserver0 /etc/hosts /etc"
+    echo "Usage: $(basename $0) <node> <cmd>"
+    echo "   Ex: $(basename $0) webserver0 "ls""
 }
-if [ $# -lt 3 ]; then
+if [ $# -lt 2 ]; then
     echo "Error: invalid parameters"
     usage
     exit 1
@@ -25,8 +25,9 @@ else
     echo "Error: $NODE_DIR not exist!!!"
     exit 1
 fi
-src=$2
-dst=$3
+shift
+cmd=$@
+nodes_list=$(IFS=, ; echo "${nodes[*]}")
 confirm()
 {
     msg=$1
@@ -48,13 +49,12 @@ confirm()
     done
 }
 
-nodes_list=$(IFS=, ; echo ${nodes[*]})
-var=`confirm "Are you sure scp ${src} to ${nodes_list}:${dst}?"`
+var=`confirm "Are you sure to run ${cmd} on ${nodes_list}? "`
 if [ $var -eq 0 ];then 
     for i in "${!nodes[@]}"; do
         node_="${nodes[$i]}"
-        echo -en "Execing scp $src to ${node_}:${dst}..\n"
-        scp -r -p -o ConnectTimeout=3 -o ConnectionAttempts=1 $src $node_:$dst
+        echo -en "Execing ${cmd} on ${node_}\n"
+        ssh -o ConnectTimeout=3 -o ConnectionAttempts=1 -p $port $node_ "$cmd"
         echo
     done
 fi
