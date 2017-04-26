@@ -2,6 +2,8 @@
 
 SCRIPT=`readlink -f $0`
 CWD=`dirname $SCRIPT`
+LOG_FILE="$CWD/log/autoscp.log"
+[ -d $CWD/log ] || mkdir $CWD/log
 cd $CWD
 usage() {
     echo "Usage: $(basename $0) <node> <src> <dst>"
@@ -27,6 +29,11 @@ else
 fi
 src=$2
 dst=$3
+log() {
+    msg=$1
+    DATE=`date +'%F %R'`
+    echo "$DATE $msg" >> $LOG_FILE
+}
 confirm()
 {
     msg=$1
@@ -47,9 +54,9 @@ confirm()
         esac
     done
 }
-
 nodes_list=$(IFS=, ; echo ${nodes[*]})
-var=`confirm "Are you sure scp ${src} to ${nodes_list}:${dst}?"`
+log "Execing scp $src to ${node_}:${dst}.."
+var=`confirm "Are you sure scp [${src}] to [${nodes_list}] : [${dst}]?"`
 if [ $var -eq 0 ];then 
     for i in "${!nodes[@]}"; do
         node_="${nodes[$i]}"
