@@ -1,7 +1,7 @@
 #!/bin/bash
 # A script to hide/unhide PCI/PCI-e device for KVM useing 'pci_stub' driver
 #get from the book 'KVM虚拟化技术 实战与原理解析'
-
+set -o xtrace
 hide_dev=0
 unhide_dev=0
 driver=0
