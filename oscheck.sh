@@ -55,7 +55,7 @@ command_check()
     fi
     if ! which iostat > /dev/null;then
         echo "iostat command not found,now the install"
-        $P_M -y install procps
+        $P_M -y install sysstat
         echo "------------------------------"
     fi
 }
@@ -265,7 +265,7 @@ check_stat()
                     ;;
                 *)
                     echo "------------------------------"
-                    echo "Please Input number"
+                    echo -e "\e[35m Please Input number $(tput sgr0)"
                     echo "------------------------------"
                     break
                     ;;
