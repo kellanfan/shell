@@ -12,4 +12,4 @@ do
     let count++
 done
 IFS=$oldIFS
-echo $name\'s shell is $shell
+echo $name\'s bash is $shell
