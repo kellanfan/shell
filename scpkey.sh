@@ -13,7 +13,7 @@ PORT=22
 
 
 checkalived() {
-    ping -c 5 -w 1 $HOST > /dev/null
+    ping -c 1 -w 1 $HOST > /dev/null
     if [ $? -eq 0 ];then
         echo "${HOST} is lived"
     else
@@ -21,6 +21,8 @@ checkalived() {
         exit 1
     fi
 }
+
+checkalived
 
 /usr/bin/expect << EOF
 set timeout 60
