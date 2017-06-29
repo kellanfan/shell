@@ -11,6 +11,6 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-git add $1
-git commit -m "$2" 
+git add $FILE
+git commit -m "$TENT"
 git push origin master
