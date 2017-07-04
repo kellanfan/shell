@@ -1,4 +1,11 @@
 #!/bin/bash
+#######################################################################
+#Author: kellanfan
+#Created Time : Jul 4 2017 11:37:27 AM CST
+#File Name: scpkey.sh
+#Description:
+#######################################################################
+
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname $SCRIPT)
 
