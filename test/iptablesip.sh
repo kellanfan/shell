@@ -9,5 +9,6 @@ for ip in $IPLIST; do
     if [ $? -ne 0 ]; then
         iptables -A INPUT -s $ip -p tcp --dport 22 -j DROP
         echo $ip >> $DENYIPLIST
+        /usr/bin/logger "${ip} had been denyed by iptables..."
     fi
 done
