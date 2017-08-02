@@ -4,7 +4,8 @@ set autoindent
 set cindent
 set shiftwidth=4
 set expandtab
-highlight Comment ctermfg=green guifg=green #注释编程绿色，显示清楚
+"注释编程绿色，显示清楚
+highlight Comment ctermfg=green guifg=green 
 set ts=4
 set nu
 set ru
