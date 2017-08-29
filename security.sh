@@ -49,7 +49,8 @@ for sg in ${sglist};do
 	check_action ${sg}
 	sleep 1
 	./apply-security-group -s ${sg} >> ${CWD}/actionlog/apply-${sg}.log
-	for((i=0;i<30;i++)); do
+	for((i=0;i<120;i++)); do
+		sleep 1
 		check_job ${sg}
 		if [ $? == 0 ];then
 			echo "${sg} job is successful..." >> ${CWD}/joblog/job-${sg}.log
@@ -57,9 +58,8 @@ for sg in ${sglist};do
 		else
 			continue
 		fi
-		sleep 1
 	done
-	if [ $i -ge 30 ];  then
+	if [ $i -ge 120 ];  then
 		echo "${sg} timeout...please check..." >> ${CWD}/joblog/job-${sg}.log
 	fi
 done
