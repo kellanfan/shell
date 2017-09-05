@@ -45,8 +45,8 @@ check() {
     fi
 }
 check_exist() {
-    ls -l $DISK >> /dev/null
-    if [ $? -gt 0 ];then
+    if ls -l $DISK >> /dev/null ; then
+#if [ $? -gt 0 ];then
         exit 2
     fi
 }
