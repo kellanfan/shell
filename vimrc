@@ -27,7 +27,7 @@ func SetTitle()
         call setline(11,"")  
     endif  
     if &filetype == 'sh'  
-        call setline(1, "\#!/bin/bash")  
+        call setline(1, "\#!/usr/bin/env bash")  
         call setline(2, "\#######################################################################")  
         call setline(3, "\#Author: ".$author_name)  
         call setline(4, "\#Created Time : ".strftime("%c"))  
