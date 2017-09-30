@@ -42,7 +42,7 @@ del_timeoutfile() {
 
 
 checkfile() {
-	FILES=`find /notifier -path "/notifier/sort" -prune -o -type f -mtime -1 -not -name "*.sign"`
+	FILES=`find /notifier -path "/notifier/sort/" -prune -o -type f -mtime -1 -not -name "*.sign"`
 	declare -a array
 	for file in $FILES; do
 		NUM=`nl $file |egrep '<h3>'|wc -l`
