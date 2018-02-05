@@ -55,3 +55,5 @@ else
     [[ -d ${MOUNTPOINT} && -f ${DISK} ]] && echo "$DISK $MOUNTPOINT iso9660 loop,nosuid 0 0" >> $FSTAB_FILE
     check
 fi
+
+cat $FSTAB_FILE
