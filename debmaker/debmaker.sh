@@ -12,7 +12,7 @@ CWD=$(dirname ${SCRIPT})
 LOGFILE=/var/log/debmaker.log
 
 logger() {
-    Msg=$1
+    Msg=$*
     DATE=`date +'%Y-%m-%d %H:%M:%S'`
     echo "$DATE $msg" >> $LOGFILE
 }
