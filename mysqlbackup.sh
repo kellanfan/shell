@@ -20,7 +20,7 @@ log() {
 
 backup() {
     log "开始备份..."
-    /usr/bin/mysqldump -u$USER -p$PASSWORD -h$HOST --flush-logs --database $DATABASE > $BACKUP_DIR/$(date +%Y%m%d)_full_backup.sql
+    /usr/bin/mysqldump -u$USER -p$PASSWORD -h$HOST --flush-logs --databases $DATABASE > $BACKUP_DIR/$(date +%Y%m%d)_full_backup.sql
     if [ $? == 0 ];then
         log "备份完成..."
     else
