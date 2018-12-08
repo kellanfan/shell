@@ -11,6 +11,7 @@ CWD=`dirname $SCRIPT`
 LOG_FILE="/var/log/mysql/mysqlbackup.log"
 CONF_FILE="$CWD/mysql.conf"
 BACKUP_DIR="/root/data/mysqlbackup"
+max_dump_num=12
 
 log() {
     msg=$1
@@ -28,6 +29,14 @@ backup() {
     fi
 }
 
+cleanup() {
+    count=`ls -1 $BACKUP_DIR |wc -l`
+	if [ $count -gt $max_dump_num ]; then
+		delnum=`expr $count - $max_dump_num`
+		cd $BACKUP_DIR
+		ls -1t $BACKUP_DIR | tail -$delnum | xargs rm -f
+	fi
+}
 if [ -f $CONF_FILE ];then
     . $CONF_FILE
 else
@@ -44,4 +53,5 @@ fi
 if [ ! -d $BACKUP_DIR ];then
     mkdir -p $BACKUP_DIR
 fi
+cleanup
 backup
