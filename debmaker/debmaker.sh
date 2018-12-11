@@ -15,10 +15,10 @@ logger() {
 usage() {
 	echo "Usage:"
     echo "	Note: package must be found in $PKGDIR"
-    echo "	$0 <package>/ --all "
+    echo "	$0 <package> --all "
 	echo "		--all all packages in $PKGDIR will be build and scan them.."
     echo "example: "
-	echo "	$0 mydeb-1.deb "
+	echo "	$0 mydeb "
     echo "	$0 --all"
 }
 
@@ -74,6 +74,10 @@ parm=$1
 
 if [ ! -d /var/log/debmaker ]; then
 	mkdir /var/log/debmaker
+fi
+
+if [ ! -d $DEBHOME ];then
+    mkdir $DEBHOME
 fi
 
 if [[ "x$parm" == "x" ]] || [ $# -eq 0 ];then
