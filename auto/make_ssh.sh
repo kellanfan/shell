@@ -12,17 +12,17 @@ CWD=`dirname $SCRIPT`
 function usage()
 {
     echo "Usage:"
-    echo "    establish_ssh.sh <ip>/<ip_list> [<ssh_port> <user> <password>]"
+    echo "    make_ssh.sh <ip>/<ip_list> [<ssh_port> <user> <password>]"
     echo "      <ip> is the ip you want to establish ssh connection"
     echo "      <ip_list> is the ip list file including ips, one ip one line"
     echo "      <ssh_port> is the ssh port of the node, 22 is default"
     echo "      <user> is the user of the node, yop is default"
-    echo "      <password> is the password of the node, zhu1241jie is default"
+    echo "      <password> is the password of the node, 123456 is default"
     echo "Example:"
     echo "    establish_ssh.sh 10.16.10.10"
     echo "    establish_ssh.sh /root/ip_list"
     echo "    establish_ssh.sh 10.16.10.10 22"
-    echo "    establish_ssh.sh /root/ip_list 22 yop zhu1241jie"
+    echo "    establish_ssh.sh /root/ip_list 22 testuser 123456"
 }
 
 if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
