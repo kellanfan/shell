@@ -1,2 +1,0 @@
-#!/bin/sh
-echo "my deb" >/root/mydeb.log

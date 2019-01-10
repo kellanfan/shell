@@ -1,9 +1,0 @@
-/var/log/spider/*.log {
-	weekly
-	size 10M
-	missingok
-	rotate 7
-	compress
-	delaycompress
-	notifempty
-}
