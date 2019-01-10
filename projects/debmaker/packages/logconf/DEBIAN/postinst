@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ ! -d /var/log/debmaker ];then
+	mkdir /var/log/debmaker
+fi
+if [ ! -d /var/log/spider ];then
+	mkdir /var/log/spider
+fi
+
+logrotate -d /etc/logrotate.d/debmaker
+logrotate -d /etc/logrotate.d/spider
+
