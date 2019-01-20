@@ -23,7 +23,6 @@ fi
 update_vim() {
     cp /etc/vim/vimrc /etc/vim/vimrc-bak
     cp $DATA_DIR/vimrc /etc/vim/vimrc
-    source /etc/vim/vimrc > /dev/null
 }
 
 #update ssh-key
