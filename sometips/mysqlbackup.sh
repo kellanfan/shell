@@ -53,5 +53,5 @@ fi
 if [ ! -d $BACKUP_DIR ];then
     mkdir -p $BACKUP_DIR
 fi
-cleanup
 backup
+cleanup
