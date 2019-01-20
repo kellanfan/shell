@@ -11,6 +11,7 @@ SCRIPT=$(readlink -f $0)
 CWD=$(dirname $SCRIPT)
 DATA_DIR=$CWD/data
 CONF_DIR=$CWD/conf
+os_version=`lsb_release -d|awk '{print $3}'`
 . $CONF_DIR/common.conf
 
 if [ `id -u` -ne 0 ];then
@@ -43,8 +44,8 @@ update_apt() {
     apt-get clean; apt-get autoclean;
     apt-get update
     #install package
-    apt-get -y install git docker.io mysql-server-5.6 python-pip python3-pip ipython ipython3
-
+    apt-get -y install python-pip vim openssh-server git mysql-server-5.6 python-pip python3-pip ipython ipython3
+    curl -sSL https://get.daocloud.io/docker | sh
     #pip install
     pip install virtualenv
     pip install virtualenvwrapper
@@ -62,10 +63,10 @@ EOF
 }
 
 main() {
-    #update_vim
+    update_apt
+    update_vim
     update_ssh
-    #update_apt
-    #update_env
+    update_env
 }
 
 main
