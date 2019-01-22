@@ -122,7 +122,7 @@ job_log="/tmp/exec_nodes_job_log_$$"
 rm -f ${job_log}
 
 log "Execing [${nodes[@]}] with [$cmd] ..."
-cat ${conf_file} | parallel -j 10 --colsep '#' --joblog ${job_log} $CWD/exec_one_node.sh {1} {2} 2>&1 | tee -a ${log_file}
+cat ${conf_file} | parallel -j 10 --colsep '#' --joblog ${job_log} $CWD/_exec_node.sh {1} {2} 2>&1 | tee -a ${log_file}
 log "Exec [${nodes[@]}] with [$cmd] Finish."
 echo "Done."
 
