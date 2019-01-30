@@ -7,11 +7,11 @@
 SCRIPT=`readlink -f $0`
 CWD=`dirname $SCRIPT`
 DATE=`date +%F`
-
+LOG_DIR='/var/log/'
 SafeExec()
 {
     local cmd=$*
-    ${cmd} >> oscheck.log 2>&1
+    ${cmd} >> $LOG_DIR/oscheck.log 2>&1
     if [ $? -ne 0 ]; then
         echo "Exec ${cmd} FAILED."
         exit 1
@@ -224,7 +224,7 @@ check_stat()
         select input in cpu_load disk_load disk_use disk_inode mem_use tcp_stat cpu_top10 mem_top10 traffic quit;do
             case $input in 
                 cpu_load)
-                    cpu_load
+                    SafeExec cpu_load
                     break
                     ;;
                 disk_load)
@@ -275,5 +275,4 @@ check_stat()
 }
 check_root
 command_check
-#SafeExec check_stat
 check_stat
