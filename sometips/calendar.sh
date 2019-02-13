@@ -12,12 +12,19 @@ menucolor="\033[0;33m"
 todaycolor="\033[0;35;44m"
 start="\033[0m"
 
+usage() {
+    echo "Usage:"
+    echo "  $0 [date]"
+    echo "  Note: If no parameter, it will print Today's Date"
+}
 
-if [ $# -ne 1 ];then
-    echo "plz input the date"
-    exit 1
+if [ $# -eq 1 ];then
+    date=$1
+elif [ $# -eq 0 ];then
+    date=`date +%F`
+else
+    usage
 fi
-date=$1
 count=`echo $date |grep -o '-'|wc -l`
 if [ $count -ne 2 ];then
     echo "plz input correct date"
