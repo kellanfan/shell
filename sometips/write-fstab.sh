@@ -46,12 +46,12 @@ check() {
 }
 check_exist() {
     if ls -l $DISK >> /dev/null ; then
-#if [ $? -gt 0 ];then
         exit 2
     fi
 }
 #check_exist
 check
+cp ${FSTAB_FILE} ${FSTAB_FILE}.`date +'%Y%m%d%H%M%S'`
 if [[ -f ${DISK} && -d ${MOUNTPOINT} && -f ${FSTAB_FILE} ]];then
     echo "$DISK $MOUNTPOINT iso9660 loop,nosuid 0 0" >> $FSTAB_FILE
     check
