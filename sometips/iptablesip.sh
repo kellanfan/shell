@@ -30,5 +30,5 @@ check() {
 ####main#####
 for ip in $IPLIST; do
     Iptables $ip
-    check 183.198.29.97
+    check $ip
 done
