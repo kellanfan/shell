@@ -19,10 +19,10 @@ function usage()
     echo "      <user> is the user of the node, yop is default"
     echo "      <password> is the password of the node, 123456 is default"
     echo "Example:"
-    echo "    establish_ssh.sh 10.16.10.10"
-    echo "    establish_ssh.sh /root/ip_list"
-    echo "    establish_ssh.sh 10.16.10.10 22"
-    echo "    establish_ssh.sh /root/ip_list 22 testuser 123456"
+    echo "    make_ssh.sh 10.16.10.10"
+    echo "    make_ssh.sh /root/ip_list"
+    echo "    make_ssh.sh 10.16.10.10 22"
+    echo "    make_ssh.sh /root/ip_list 22 testuser 123456"
 }
 
 if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
