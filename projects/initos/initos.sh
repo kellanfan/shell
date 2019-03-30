@@ -11,22 +11,33 @@ SCRIPT=$(readlink -f $0)
 CWD=$(dirname $SCRIPT)
 DATA_DIR=$CWD/data
 CONF_DIR=$CWD/conf
-os_version=`lsb_release -d|awk '{print $3}'`
 . $CONF_DIR/common.conf
-
-if [ `id -u` -ne 0 ];then
-    echo "Not Root!!!"
-    exit
-fi
-
-######update vimrc#########
-update_vim() {
-    cp /etc/vim/vimrc /etc/vim/vimrc-bak
-    cp $DATA_DIR/vimrc /etc/vim/vimrc
+log_file=/var/log/initos.log
+########################
+Usage() {
+    echo "$0 [common|shadow]"
+    echo "  common: 普通模式安装"
+    echo "  shadow: 翻墙模式安装"
+    echo "Example: $0 common"
+    echo "Example: $0 shadow"
 }
 
-#update ssh-key
+check_network() {
+    ping -c 1 -w 3 www.baidu.com > /dev/null
+    if [ $? -ne 0 ];then
+        echo "网络不通！！！"
+        exit
+    fi
+}
+
+log() {
+    msg=$*
+    DATE=$(date +'%Y-%m-%d %H:%M:%S')
+    echo "${DATE} ${msg}" >> ${log_file}
+}
+
 update_ssh() {
+    echo "====更新ssh配置===="
     if [ -d /root/.ssh ];then
         rm -rf /root/.ssh
     fi
@@ -38,20 +49,23 @@ update_ssh() {
 
 #update apt
 update_apt() {
+    local os_version=$(lsb_release -d|awk '{print $3}'|cut -d'.' -f 1)
+    echo "====更新apt源===="
     cp /etc/apt/sources.list /etc/apt/sources.list-bak
-    cp $DATA_DIR/sources.list /etc/apt/sources.list
+    if [ "$os_version" == '14' ];then
+        cp $DATA_DIR/sources.list-14 /etc/apt/sources.list
+    elif [ "$os_version" == "16" ];then
+        cp $DATA_DIR/sources.list-16 /etc/apt/sources.list
+    elif [ "$os_version" == "18" ];then
+        cp $DATA_DIR/sources.list-18 /etc/apt/sources.list
+    fi
     apt-get clean; apt-get autoclean;
     apt-get update
-    #install package
-    apt-get -y install python-pip vim openssh-server git mysql-server-5.6 python-pip python3-pip ipython ipython3
-    curl -sSL https://get.daocloud.io/docker | sh
-    #pip install
-    pip install virtualenv
-    pip install virtualenvwrapper
 }
 
 #update env
 update_env() {
+    echo "====更新环境变量===="
     cat <<EOF >> /root/.bashrc
 PS1="\u@\[\e[1;93m\]\h\[\e[m\]:\w\\$\[\e[m\] "
 HISTTIMEFORMAT="%F %T `whoami` "
@@ -61,11 +75,83 @@ source /usr/local/bin/virtualenvwrapper.sh
 EOF
 }
 
-main() {
-    update_apt
-    update_vim
-    update_ssh
-    update_env
+update_vim() {
+    echo "====更新vimrc配置===="
+    cp /etc/vim/vimrc /etc/vim/vimrc-bak
+    cp $DATA_DIR/vimrc /etc/vim/vimrc
 }
 
-main
+install_package_1() {
+    #install package
+    echo "====安装相关软件===="
+    apt-get -y install python-pip vim openssh-server git mysql-server-5.6 python-pip python3-pip ipython ipython3
+    curl -sSL https://get.daocloud.io/docker | sh
+    #pip install
+    pip install virtualenv
+    pip install virtualenvwrapper
+}
+
+init_shadownsocks() {
+    echo "====安装shadowsocks===="
+    pip install shadowsocks
+
+    #unzip $CWD/data/shadowsocks-master.zip
+    #cd $CWD/data/shadowsocks-master
+    #python setup.py install
+	if [ ! -d /etc/shadowsocks ];then
+		mkdir /etc/shadowsocks
+	fi
+    cp $CWD/data/config.json /etc/shadowsocks/
+    /usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start
+    sed -i "/^exit/i\/usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start" /etc/rc.local
+}
+
+
+install_package_2() {
+    echo "====安装相关软件===="
+	apt-get -y install unzip openssh-server python-pip python3-pip
+	pip install virtualenv
+	pip install virtualenvwrapper
+}
+
+
+main() {
+    echo "===初始化系统 v0.1==="
+
+    if [ `id -u` -ne 0 ];then
+        echo "Not Root!!!"
+        exit
+    fi
+    if [ $# -ne 1 ];then
+        Usage
+        exit
+    fi
+	if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
+    	Usage
+    	exit 1
+	fi
+
+    check_network
+
+    if [[ "x$1" == "xcommon" ]];then
+        echo "开始部署常规模式"
+        update_apt
+        install_package_1
+        update_vim
+        update_ssh
+        update_env
+    elif [[ "x$1" == "xshadow" ]];then
+        echo "开始部署翻墙模式"
+        update_apt
+        install_package_2
+        update_ssh
+        init_shadownsocks
+        update_env
+    else
+        Usage
+        exit
+    fi
+    echo "Done."
+}
+
+main $1
