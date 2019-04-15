@@ -84,7 +84,7 @@ update_vim() {
 install_package_1() {
     #install package
     echo "====安装相关软件===="
-    apt-get -y install python-pip vim openssh-server git mysql-server-5.6 python-pip python3-pip ipython ipython3
+    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython ipython3
     curl -sSL https://get.daocloud.io/docker | sh
     #pip install
     pip install virtualenv
@@ -109,7 +109,7 @@ init_shadownsocks() {
 
 install_package_2() {
     echo "====安装相关软件===="
-	apt-get -y install unzip openssh-server python-pip python3-pip
+	apt-get install -y -qq unzip openssh-server python-pip python3-pip
 	pip install virtualenv
 	pip install virtualenvwrapper
 }
