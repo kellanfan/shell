@@ -77,8 +77,7 @@ EOF
 
 update_vim() {
     echo "====更新vimrc配置===="
-    cp /etc/vim/vimrc /etc/vim/vimrc-bak
-    cp $DATA_DIR/vimrc /etc/vim/vimrc
+    cp $DATA_DIR/vimrc ~/.vimrc
 }
 
 install_package_1() {
