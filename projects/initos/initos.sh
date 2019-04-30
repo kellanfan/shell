@@ -49,7 +49,7 @@ update_ssh() {
 
 #update apt
 update_apt() {
-    local os_version=$(lsb_release -d|awk '{print $3}'|cut -d'.' -f 1)
+    local os_version=$(cat /etc/issue|awk '{print $2}'|cut -d'.' -f 1)
     echo "====更新apt源===="
     cp /etc/apt/sources.list /etc/apt/sources.list-bak
     if [ "$os_version" == '14' ];then
@@ -77,13 +77,15 @@ EOF
 
 update_vim() {
     echo "====更新vimrc配置===="
+    git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
     cp $DATA_DIR/vimrc ~/.vimrc
+    cp $DATA_DIR/vimrc.bundles ~/.vimrc.bundles
 }
 
 install_package_1() {
     #install package
     echo "====安装相关软件===="
-    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython ipython3
+    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython ipython3 ctags
     curl -sSL https://get.daocloud.io/docker | sh
     #pip install
     pip install virtualenv
