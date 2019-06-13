@@ -97,7 +97,6 @@ autocmd BufNewFile *.py,*.sh, exec ":call SetTitle()"
 let $author_name = "Kellan Fan"
 func SetTitle()  
     if &filetype == 'python'  
-        call setline(1, "\#/usr/bin/env python")  
         call setline(2, "\#coding=utf8")  
         call setline(3, "\"\"\"")  
         call setline(4, "\# Author: ".$author_name)  
@@ -110,7 +109,6 @@ func SetTitle()
         call setline(11,"")  
     endif  
     if &filetype == 'sh'  
-        call setline(1, "\#!/usr/bin/env bash")  
         call setline(2, "\#######################################################################")  
         call setline(3, "\#Author: ".$author_name)  
         call setline(4, "\#Created Time : ".strftime("%c"))  
