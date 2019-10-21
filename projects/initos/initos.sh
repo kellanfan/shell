@@ -88,6 +88,7 @@ install_package_1() {
     apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython ipython3 ctags
     curl -sSL https://get.daocloud.io/docker | sh
     #pip install
+    pip install --upgrade pip
     pip install virtualenv
     pip install virtualenvwrapper
 }
