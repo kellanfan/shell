@@ -112,6 +112,7 @@ init_shadownsocks() {
 install_package_2() {
     echo "====安装相关软件===="
 	apt-get install -y -qq unzip openssh-server python-pip python3-pip
+    pip install --upgrade pip
 	pip install virtualenv
 	pip install virtualenvwrapper
 }
