@@ -14,7 +14,7 @@ CONF_DIR=$CWD/conf
 . $CONF_DIR/common.conf
 log_file=/var/log/initos.log
 ########################
-Usage() {
+function Usage() {
     echo "$0 [common|shadow]"
     echo "  common: 普通模式安装"
     echo "  shadow: 翻墙模式安装"
@@ -22,35 +22,29 @@ Usage() {
     echo "Example: $0 shadow"
 }
 
-check_network() {
+function check_network() {
+    echo "===check_network==="
     ping -c 1 -w 3 www.baidu.com > /dev/null
     if [ $? -ne 0 ];then
-        echo "网络不通！！！"
-        exit
+        exit 1
     fi
 }
 
-log() {
-    msg=$*
-    DATE=$(date +'%Y-%m-%d %H:%M:%S')
-    echo "${DATE} ${msg}" >> ${log_file}
-}
-
-update_ssh() {
-    echo "====更新ssh配置===="
+function update_ssh() {
+    echo "===update ssh config==="
     if [ -d /root/.ssh ];then
         rm -rf /root/.ssh
     fi
     cp -r $DATA_DIR/ssh /root/.ssh
     sed -i "/^Port/s/22/${ssh_port}/" /etc/ssh/sshd_config
     sed -i '/^#PasswordAuthentication/a\PasswordAuthentication no' /etc/ssh/sshd_config
-    service ssh restart
+    service ssh reload
 }
 
 #update apt
-update_apt() {
+function update_apt() {
+    echo "===update apt repo==="
     local os_version=$(cat /etc/issue|awk '{print $2}'|cut -d'.' -f 1)
-    echo "====更新apt源===="
     cp /etc/apt/sources.list /etc/apt/sources.list-bak
     if [ "$os_version" == '14' ];then
         cp $DATA_DIR/sources.list-14 /etc/apt/sources.list
@@ -64,8 +58,8 @@ update_apt() {
 }
 
 #update env
-update_env() {
-    echo "====更新环境变量===="
+function update_env() {
+    echo "===update env==="
     cat <<EOF >> /root/.bashrc
 PS1="\u@\[\e[1;93m\]\h\[\e[m\]:\w\\$\[\e[m\] "
 HISTTIMEFORMAT="%F %T `whoami` "
@@ -75,81 +69,111 @@ source /usr/local/bin/virtualenvwrapper.sh
 EOF
 }
 
-update_vim() {
-    echo "====更新vimrc配置===="
-    git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
-    cp $DATA_DIR/vimrc ~/.vimrc
-    cp $DATA_DIR/vimrc.bundles ~/.vimrc.bundles
+function update_vim() {
+    echo "===update vimrc==="
+    cp ${DATA_DIR}/vimrc ~/.vimrc
 }
 
-install_package_1() {
-    #install package
-    echo "====安装相关软件===="
-    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython ipython3 ctags
-    curl -sSL https://get.daocloud.io/docker | sh
+function install_package_common() {
     #pip install
-    pip install --upgrade pip
+    #pip install --upgrade pip
     pip install virtualenv
     pip install virtualenvwrapper
 }
 
-init_shadownsocks() {
-    echo "====安装shadowsocks===="
-    pip install shadowsocks
+function install_package_1() {
+    #install package
+    echo "===install packages==="
+    # install python 3.8.0
+    #wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz
+    #tar zxf ${DATA_DIR}/Python-3.8.0.tgz -C /tmp/
+    #cd /tmp/Python-3.8.0
+    #apt-get install -y -qq build-essential libncursesw5-dev libgdbm-dev libc6-dev zlib1g-dev libsqlite3-dev tk-dev libssl-dev openssl libffi-dev libbz2-dev
+    #./configure
+    #make && sudo make install
+    
+    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython3 ctags
+    curl -sSL https://get.daocloud.io/docker | sh
+    install_package_common
+}
 
-    #unzip $CWD/data/shadowsocks-master.zip
-    #cd $CWD/data/shadowsocks-master
-    #python setup.py install
+function install_package_2() {
+    echo "===install packages==="
+    apt-get install -y -qq unzip openssh-server python-pip python3-pip
+    install_package_common
+}
+
+function init_shadownsocks() {
+    echo "===install shadowsocks==="
+    pip3 install shadowsocks
+    if [ $? -ne 0 ];then
+        tar zxf ${DATA_DIR}/shadowsocks-2.8.2.tar.gz -C /tmp
+        cd /tmp/shadowsocks-2.8.2/
+        python3 setup.py install
+    fi
 	if [ ! -d /etc/shadowsocks ];then
 		mkdir /etc/shadowsocks
 	fi
-    cp $CWD/data/config.json /etc/shadowsocks/
+    cp ${DATA_DIR}/config.json /etc/shadowsocks/
     /usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start
     sed -i "/^exit/i\/usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start" /etc/rc.local
 }
 
-
-install_package_2() {
-    echo "====安装相关软件===="
-	apt-get install -y -qq unzip openssh-server python-pip python3-pip
-    pip install --upgrade pip
-	pip install virtualenv
-	pip install virtualenvwrapper
+function log() {
+    msg=$*
+    DATE=$(date +'%Y-%m-%d %H:%M:%S')
+    echo "${DATE} ${msg}" >> ${log_file}
 }
 
+function SafeExec() {
+    local cmd=$1
+    echo -n "Execing the step [${cmd}]..."
+    log "Execing the step [${cmd}]..."
+    ${cmd} >>${log_file} 2>&1
+    if [ $? -eq 0 ];then
+        echo -n "OK." && echo ""
+        log "Exec the step [${cmd}] OK."
+    else
+        echo -n "Error!" && echo ""
+        log "Exec the function [${cmd}] Error!"
+        exit 1
+    fi
+}
 
-main() {
+function main() {
     echo "===初始化系统 v0.1==="
 
     if [ `id -u` -ne 0 ];then
         echo "Not Root!!!"
-        exit
+        exit 1
     fi
     if [ $# -ne 1 ];then
         Usage
-        exit
+        exit 1
     fi
 	if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
     	Usage
     	exit 1
 	fi
 
-    check_network
+    SafeExec check_network
 
     if [[ "x$1" == "xcommon" ]];then
-        echo "开始部署常规模式"
-        update_apt
-        install_package_1
-        update_vim
-        update_ssh
-        update_env
+        echo "===begin to common mode==="
+        log "===begin to common mode==="
+        SafeExec update_apt
+        SafeExec install_package_1
+        SafeExec update_vim
+        SafeExec update_ssh
+        SafeExec update_env
     elif [[ "x$1" == "xshadow" ]];then
-        echo "开始部署翻墙模式"
-        update_apt
-        install_package_2
-        update_ssh
-        init_shadownsocks
-        update_env
+        echo "===begin to shadow mode==="
+        log "===begin to shadow mode==="
+        SafeExec update_apt
+        SafeExec install_package_2
+        SafeExec update_ssh
+        SafeExec init_shadownsocks
+        SafeExec update_env
     else
         Usage
         exit
