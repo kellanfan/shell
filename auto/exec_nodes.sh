@@ -97,9 +97,8 @@ if [[ "x$option" != "x--force-yes" ]]; then
         exit 0
     fi
 fi
-
-mkdir -p /var/log/exec_nodes
-log_file="/var/log/exec_nodes/exec_nodes.log"
+[ -d "$CWD/log" ] || mkdir $CWD/log
+log_file="$CWD/log/exec_nodes.log"
 if [ -f ${log_file} ]; then
     echo "" >> ${log_file}
 fi

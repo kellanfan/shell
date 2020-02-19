@@ -7,9 +7,9 @@ CWD=`dirname $SCRIPT`
 function usage()
 {
     echo "Usage:"
-    echo "    exec_one_node.sh <node> <cmd>"
+    echo "    _exec_node.sh <node> <cmd>"
     echo "Example:"
-    echo "    exec_one_node.sh test \"apt-get update\""
+    echo "    _exec_node.sh test \"apt-get update\""
 }
 
 if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
@@ -32,8 +32,8 @@ if [ $? -ne 0 ];then
     exit 1
 fi
 
-mkdir -p /var/log/exec_nodes
-log_file="/var/log/exec_nodes/exec_${node}.log"
+[ -d $CWD/log/exec_nodes ] || mkdir -p $CWD/log/exec_nodes
+log_file="$CWD/log/exec_nodes/exec_${node}.log"
 if [ -f ${log_file} ]; then
     echo "" >> ${log_file}
 fi

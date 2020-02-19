@@ -10,3 +10,5 @@ packages/
 deb/
 data/
 conf/
+log/
+nodes/
