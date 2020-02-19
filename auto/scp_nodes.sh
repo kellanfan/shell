@@ -3,7 +3,7 @@
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname $SCRIPT)
 LOG_FILE="${CWD}/log/scp_nodes.log"
-NODE_DIR="${CWD}/nodes"
+nodeDIR="${CWD}/nodes"
 CONF_DIR="${CWD}/conf"
 src=$2
 dst=$3
@@ -21,9 +21,7 @@ log() {
 
 confirm()
 {
-    msg=$1
-    # response="y"
-    # call with a prompt string or use a default
+    msg=$*
     while [ 1 -eq 1 ]
     do
         read -r -p "${1:-msg} click 'y' to continue, 'n' to ignore " response
@@ -58,31 +56,38 @@ else
     port=22
 fi
 # get nodes info
-if [ -d $NODE_DIR ]; then
-    if [ -f $NODE_DIR/${1} ];then
-        . $NODE_DIR/${1}
+if [ -d $nodeDIR ]; then
+    if [ -f $nodeDIR/${1} ];then
+        . $nodeDIR/${1}
     else
         nodes=("${1}")
     fi
 else
-    echo "Error: $NODE_DIR not exist!!!"
+    echo "Error: $nodeDIR not exist!!!"
     exit 1
 fi
 nodes_list=$(IFS=, ; echo ${nodes[*]})
-log "Execing scp $src to ${node_}:${dst}.."
-var=`confirm "Are you sure scp [${src}] to [${nodes_list}] : [${dst}]?"`
+log "Execing scp $src to ${node}:${dst}.."
+
+echo "----------------------------------"
+echo -e "TARGETS:\n     ${nodes_list}"
+echo "----------------------------------"
+echo -e "SRC:\n     ${src}"
+echo "----------------------------------"
+echo -e "DEST:\n    ${dst}"
+echo "----------------------------------"
+var=$(confirm "Are you sure to exec the scp command?")
 if [ $var -eq 0 ];then 
-    for i in "${!nodes[@]}"; do
-        node_="${nodes[$i]}"
-        echo -en "Execing scp $src to ${node_}:${dst}..\n"
-        log "Execing scp $src to ${node_}:${dst}.."
-        scp -r -p -o ConnectTimeout=3 -o ConnectionAttempts=1 -P $port $src $user@$node_:$dst 2>&1 | tee -a ${LOG_FILE}
+    for node in "${nodes[@]}"; do
+        echo -en "Execing scp $src to ${node}:${dst}..\n"
+        log "Execing scp $src to ${node}:${dst}.."
+        scp -r -p -o ConnectTimeout=3 -o ConnectionAttempts=1 -P ${port} ${src} ${user}@${node}:${dst} 2>&1 | tee -a ${LOG_FILE}
         if [ $? -eq 0 ];then
             echo ""
-            log "Execed scp $src to ${node_}:${dst} OK"
+            log "Execed scp $src to ${node}:${dst} OK"
         else
             echo ""
-            log "Execed scp $src to ${node_}:${dst} Error"
+            log "Execed scp $src to ${node}:${dst} Error"
         fi
         echo
     done
