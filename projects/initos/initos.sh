@@ -3,7 +3,7 @@
 #Author: kellanfan
 #Created Time : Tue 28 Aug 2018 09:39:17 AM CST
 #File Name: initos.sh
-#Description:
+#Description: 初始化自己的机器环境
 #######################################################################
 
 #######variable#########
@@ -32,10 +32,11 @@ function check_network() {
 
 function update_ssh() {
     echo "===update ssh config==="
-    if [ -d /root/.ssh ];then
-        rm -rf /root/.ssh
+    if [ -d ~/.ssh ];then
+        rm -rf ~/.ssh
     fi
-    cp -r $DATA_DIR/ssh /root/.ssh
+    cp -r $DATA_DIR/ssh ~/.ssh
+    chmod 600 ~/.ssh/id_rsa
     sed -i "/^Port/s/22/${ssh_port}/" /etc/ssh/sshd_config
     sed -i '/^#PasswordAuthentication/a\PasswordAuthentication no' /etc/ssh/sshd_config
     service ssh reload
@@ -60,12 +61,37 @@ function update_apt() {
 #update env
 function update_env() {
     echo "===update env==="
-    cat <<EOF >> /root/.bashrc
+    if [ ! -d /root/.backup ];then
+        mkdir /root/.backup
+    fi
+    cat <<EOF >> ~/.bashrc
 PS1="\u@\[\e[1;93m\]\h\[\e[m\]:\w\\$\[\e[m\] "
 HISTTIMEFORMAT="%F %T `whoami` "
 export PYTHONDONTWRITEBYTECODE=False
 export WORKON_HOME=$HOME/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
+EOF
+    cat <<EOF >> /etc/profile
+#save history 
+IP=$(who -u am i|awk '{print $NF}'|sed -e 's/[()]//g')
+HISTDIR=/opt/.history
+if [ -z $IP ];then
+    IP=$(hostname)
+fi
+if [ ! -d $HISTDIR ];then
+    mkdir -p $HISTDIR
+    chmod 777 $HISTDIR
+fi
+if [ ! -d $HISTDIR/$LOGNAME ];then
+    mkdir -p $HISTDIR/$LOGNAME
+    chmod 300 $HISTDIR/$LOGNAME
+fi
+export HISTSIZE=4000
+#DateTime=$(date +%F_%T)
+DateTime=$(date +%F_%H%M%S)
+export HISTFILE="$HISTDIR/$LOGNAME/$IP.histroy.$DateTime"
+HISTTIMEFORMAT='%F %T '  
+chmod 600 $HISTDIR/$LOGNAME/*.history.* 2>/dev/null
 EOF
 }
 
@@ -75,32 +101,17 @@ function update_vim() {
 }
 
 function install_package_common() {
-    #pip install
-    #pip install --upgrade pip
-    pip install virtualenv
-    pip install virtualenvwrapper
-}
-
-function install_package_1() {
     #install package
-    echo "===install packages==="
-    # install python 3.8.0
-    #wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz
-    #tar zxf ${DATA_DIR}/Python-3.8.0.tgz -C /tmp/
-    #cd /tmp/Python-3.8.0
-    #apt-get install -y -qq build-essential libncursesw5-dev libgdbm-dev libc6-dev zlib1g-dev libsqlite3-dev tk-dev libssl-dev openssl libffi-dev libbz2-dev
-    #./configure
-    #make && sudo make install
-    
-    apt-get install -y -qq vim openssh-server git python-pip python3-pip ipython3 ctags
+    echo "===install packages==="    
+    apt-get install -y -qq git python3-pip ipython3 redis etcd mongodb postgresql
     curl -sSL https://get.daocloud.io/docker | sh
-    install_package_common
+    pip3 install virtualenv
+    pip3 install virtualenvwrapper
 }
 
-function install_package_2() {
+function install_package_shadow() {
     echo "===install packages==="
-    apt-get install -y -qq unzip openssh-server python-pip python3-pip
-    install_package_common
+    apt-get install -y -qq python3-pip
 }
 
 function init_shadownsocks() {
@@ -117,6 +128,23 @@ function init_shadownsocks() {
     cp ${DATA_DIR}/config.json /etc/shadowsocks/
     /usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start
     sed -i "/^exit/i\/usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start" /etc/rc.local
+}
+
+function config_service() {
+    # etcd
+    sed -i '/ETCD_LISTEN_CLIENT_URLS/aETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
+    sed -i '/ETCD_ADVERTISE_CLIENT_URLS/aETCD_ADVERTISE_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
+    systemctl restart etcd
+    # redis
+    sed -i '/^bind/s/^/#/' /etc/redis/redis.conf
+    sed -i '/bind 127.0.0.1/abind *' /etc/redis/redis.conf
+    systemctl restart redis
+    # mongodb
+    sed -i 's/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/' /etc/mongodb.conf
+    systemctl restart mongodb
+    # postgresql
+    sed -i "/listen_addresses/alisten_addresses = \'*\'" /etc/postgresql/10/main/postgresql.conf
+    systemctl restart postgresql
 }
 
 function log() {
@@ -156,24 +184,24 @@ function main() {
     	exit 1
 	fi
 
-    SafeExec check_network
-
     if [[ "x$1" == "xcommon" ]];then
         echo "===begin to common mode==="
         log "===begin to common mode==="
+        SafeExec check_network
         SafeExec update_apt
-        SafeExec install_package_1
+        SafeExec install_package_common
+        SafeExec config_service
         SafeExec update_vim
         SafeExec update_ssh
         SafeExec update_env
     elif [[ "x$1" == "xshadow" ]];then
         echo "===begin to shadow mode==="
         log "===begin to shadow mode==="
+        SafeExec check_network
         SafeExec update_apt
-        SafeExec install_package_2
+        SafeExec install_package_shadow
         SafeExec update_ssh
         SafeExec init_shadownsocks
-        SafeExec update_env
     else
         Usage
         exit
