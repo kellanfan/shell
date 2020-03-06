@@ -37,7 +37,7 @@ function update_ssh() {
     fi
     cp -r $DATA_DIR/ssh ~/.ssh
     chmod 600 ~/.ssh/id_rsa
-    sed -i "/^Port/s/22/${ssh_port}/" /etc/ssh/sshd_config
+    sed -i "/Port/aPort ${ssh_port}" /etc/ssh/sshd_config
     sed -i '/^#PasswordAuthentication/a\PasswordAuthentication no' /etc/ssh/sshd_config
     service ssh reload
 }
@@ -102,11 +102,27 @@ function update_vim() {
 
 function install_package_common() {
     #install package
-    echo "===install packages==="    
-    apt-get install -y -qq git python3-pip ipython3 redis etcd mongodb postgresql
+    echo "===install packages==="  
+    kill -9 `pgrep apt`
+    rm /var/lib/apt/lists/lock
+    rm /var/cache/apt/archives/lock
+    rm /var/lib/dpkg/lock
+    apt-get install -y git python3-pip ipython3 redis etcd mongodb postgresql
     curl -sSL https://get.daocloud.io/docker | sh
     pip3 install virtualenv
     pip3 install virtualenvwrapper
+}
+
+function stop_apt_daily() {
+    apt-get -y remove unattended-upgrades
+    systemctl kill --kill-who=all apt-daily.service
+    systemctl stop apt-daily.timer
+    systemctl disable apt-daily.timer
+    systemctl stop apt-daily.service
+    systemctl disable apt-daily.service
+    systemctl mask apt-daily.service
+    systemctl daemon-reload
+
 }
 
 function install_package_shadow() {
@@ -190,6 +206,7 @@ function main() {
         SafeExec check_network
         SafeExec update_apt
         SafeExec install_package_common
+        SafeExec stop_apt_daily
         SafeExec config_service
         SafeExec update_vim
         SafeExec update_ssh
