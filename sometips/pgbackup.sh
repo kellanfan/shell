@@ -12,7 +12,7 @@ CONF_FILE=${CWD}/pgbackup.conf
 
 
 backup() {
-    export ${PGPASSWORD}
+    export PGPASSWORD
     pg_dumpall -Upostgres > ${LOCAL_BACKUP_DIR}/pg_full_backup_$(date +%Y%m%d).sql
     if [ $? == 0 ];then
         logger "本地备份完成..."
