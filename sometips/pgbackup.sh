@@ -6,6 +6,8 @@
 #######################################################################
 #!/bin/bash
 
+#!/bin/bash
+
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname ${SCRIPT})
 CONF_FILE=${CWD}/pgbackup.conf
@@ -13,8 +15,8 @@ CONF_FILE=${CWD}/pgbackup.conf
 
 backup() {
     export PGPASSWORD
-    pg_dumpall -Upostgres > ${LOCAL_BACKUP_DIR}/pg_full_backup_$(date +%Y%m%d).sql
-    if [ $? == 0 ];then
+    pg_dumpall -Upostgres > ${LOCAL_BACKUP_DIR}/pg_full_backup_$(date +%Y%m%d).sql 
+    if [ $? -eq 0 ];then
         logger "本地备份完成..."
     else
         logger "本地备份失败..."
@@ -31,8 +33,8 @@ local_cleanup() {
 }
 
 push_oss() {
-    qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/
-    if [ $? == 0 ]; then
+    qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/ 2&>1
+    if [ $? -eq 0 ]; then
         logger "远程推送备份文件成功.."
     else
         logger "远程推送备份文件失败.."
