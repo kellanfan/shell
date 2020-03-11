@@ -33,7 +33,7 @@ local_cleanup() {
 }
 
 push_oss() {
-    qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/ 2&>1
+    qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/ 2>&1
     if [ $? -eq 0 ]; then
         logger "远程推送备份文件成功.."
     else
