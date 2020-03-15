@@ -6,8 +6,6 @@
 #######################################################################
 #!/bin/bash
 
-#!/bin/bash
-
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname ${SCRIPT})
 CONF_FILE=${CWD}/pgbackup.conf
@@ -33,7 +31,7 @@ local_cleanup() {
 }
 
 push_oss() {
-    qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/ 2>&1
+    /usr/local/bin/qsctl sync ${LOCAL_BACKUP_DIR} qs://${BUCKET_NAME}/pgbackup/ >> /var/log/syslog
     if [ $? -eq 0 ]; then
         logger "远程推送备份文件成功.."
     else
