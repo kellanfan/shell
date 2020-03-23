@@ -12,7 +12,8 @@ CWD=$(dirname $SCRIPT)
 DATA_DIR=$CWD/data
 CONF_DIR=$CWD/conf
 . $CONF_DIR/common.conf
-log_file=/var/log/initos.log
+export DEBIAN_FRONTEND
+
 ########################
 function Usage() {
     echo "$0 [common|shadow]"
@@ -103,10 +104,7 @@ function update_vim() {
 function install_package_common() {
     #install package
     echo "===install packages==="  
-    kill -9 `pgrep apt`
-    rm /var/lib/apt/lists/lock
-    rm /var/cache/apt/archives/lock
-    rm /var/lib/dpkg/lock
+    check_apt_process
     apt-get install -y git python3-pip ipython3 redis etcd mongodb postgresql
     curl -sSL https://get.daocloud.io/docker | sh
     pip3 install virtualenv
@@ -125,25 +123,39 @@ function stop_apt_daily() {
 
 }
 
+function check_apt_process() {
+    echo "Check apt process, Make sure there is no apt process"
+    while true;do
+        kill -9 $(pgrep apt)
+        sleep 1
+        pgrep apt > /dev/null
+        if [ $? -ne 0 ]; then
+            break
+        fi
+    done
+    rm /var/lib/apt/lists/lock
+    rm /var/cache/apt/archives/lock
+    rm /var/lib/dpkg/lock
+}
+
 function install_package_shadow() {
     echo "===install packages==="
+    check_apt_process
     apt-get install -y -qq python3-pip
 }
 
 function init_shadownsocks() {
     echo "===install shadowsocks==="
     pip3 install shadowsocks
-    if [ $? -ne 0 ];then
-        tar zxf ${DATA_DIR}/shadowsocks-2.8.2.tar.gz -C /tmp
-        cd /tmp/shadowsocks-2.8.2/
-        python3 setup.py install
-    fi
 	if [ ! -d /etc/shadowsocks ];then
 		mkdir /etc/shadowsocks
 	fi
-    cp ${DATA_DIR}/config.json /etc/shadowsocks/
-    /usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start
-    sed -i "/^exit/i\/usr/local/bin/ssserver -c /etc/shadowsocks/config.json -k Zhu88jie -d start" /etc/rc.local
+    cp ${DATA_DIR}/shadowsocks/config.json /etc/shadowsocks/
+    sed -i "/password/s/xxxxxx/${shadow_password}/" /etc/shadowsocks/config.json
+    sed -i 's/cleanup/reset/' /usr/local/lib/python3.6/dist-packages/shadowsocks/crypto/openssl.py
+    cp ${DATA_DIR}/shadowsocks/shadowsocks.service /lib/systemd/system/
+    systemctl daemon-reload
+    systemctl start shadowsocks.service
 }
 
 function config_service() {
@@ -185,7 +197,7 @@ function SafeExec() {
 }
 
 function main() {
-    echo "===初始化系统 v0.1==="
+    echo "===初始化系统 v0.2==="
 
     if [ `id -u` -ne 0 ];then
         echo "Not Root!!!"
@@ -199,7 +211,6 @@ function main() {
     	Usage
     	exit 1
 	fi
-
     if [[ "x$1" == "xcommon" ]];then
         echo "===begin to common mode==="
         log "===begin to common mode==="
@@ -217,6 +228,7 @@ function main() {
         SafeExec check_network
         SafeExec update_apt
         SafeExec install_package_shadow
+        SafeExec stop_apt_daily
         SafeExec update_ssh
         SafeExec init_shadownsocks
     else

@@ -21,11 +21,14 @@ backup() {
     fi
 }
 
-local_cleanup() {
+cleanup() {
     count=`ls -1 ${LOCAL_BACKUP_DIR} |wc -l`
 	if [ ${count} -gt ${max_dump_num} ]; then
 		delnum=`expr ${count} - ${max_dump_num}`
 		cd ${LOCAL_BACKUP_DIR}
+        for file in $(ls -1t ${LOCAL_BACKUP_DIR} | tail -$delnum);do
+            /usr/local/bin/qsctl rm qs://${BUCKET_NAME}/pgbackup/${file} >> /var/log/syslog
+        done
 		ls -1t ${LOCAL_BACKUP_DIR} | tail -$delnum | xargs rm -f
 	fi
 }
@@ -58,7 +61,7 @@ main() {
 
     logger '======开始备份postgresql======'
     backup
-    local_cleanup
+    cleanup
     push_oss
     logger '======备份postgresql完成======'
 }
