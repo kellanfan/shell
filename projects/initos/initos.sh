@@ -124,6 +124,7 @@ function init_shadownsocks() {
     cp ${DATA_DIR}/shadowsocks/shadowsocks.service /lib/systemd/system/
     systemctl daemon-reload
     systemctl start shadowsocks.service
+    systemctl enable shadowsocks.service
 }
 
 function config_service() {
