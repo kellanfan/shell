@@ -132,16 +132,20 @@ function config_service() {
     sed -i '/ETCD_LISTEN_CLIENT_URLS/aETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
     sed -i '/ETCD_ADVERTISE_CLIENT_URLS/aETCD_ADVERTISE_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
     systemctl restart etcd
+    systemctl enable etcd
     # redis
     sed -i '/^bind/s/^/#/' /etc/redis/redis.conf
     sed -i '/bind 127.0.0.1/abind *' /etc/redis/redis.conf
     systemctl restart redis
+    systemctl enable redis
     # mongodb
     sed -i 's/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/' /etc/mongodb.conf
     systemctl restart mongodb
+    systemctl enable mongodb
     # postgresql
     sed -i "/listen_addresses/alisten_addresses = \'*\'" /etc/postgresql/10/main/postgresql.conf
     systemctl restart postgresql
+    systemctl enable postgresql
 }
 
 function log() {
