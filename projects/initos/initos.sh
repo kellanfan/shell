@@ -13,7 +13,6 @@ DATA_DIR=$CWD/data
 CONF_DIR=$CWD/conf
 . $CONF_DIR/common.conf
 export DEBIAN_FRONTEND
-
 ########################
 function Usage() {
     echo "$0 [common|shadow]"
@@ -43,7 +42,6 @@ function update_ssh() {
     service ssh reload
 }
 
-#update apt
 function update_apt() {
     echo "===update apt repo==="
     local os_version=$(cat /etc/issue|awk '{print $2}'|cut -d'.' -f 1)
@@ -59,41 +57,13 @@ function update_apt() {
     apt-get update
 }
 
-#update env
 function update_env() {
     echo "===update env==="
     if [ ! -d /root/.backup ];then
         mkdir /root/.backup
     fi
-    cat <<EOF >> ~/.bashrc
-PS1="\u@\[\e[1;93m\]\h\[\e[m\]:\w\\$\[\e[m\] "
-HISTTIMEFORMAT="%F %T `whoami` "
-export PYTHONDONTWRITEBYTECODE=False
-export WORKON_HOME=$HOME/.virtualenvs
-source /usr/local/bin/virtualenvwrapper.sh
-EOF
-    cat <<EOF >> /etc/profile
-#save history 
-IP=$(who -u am i|awk '{print $NF}'|sed -e 's/[()]//g')
-HISTDIR=/opt/.history
-if [ -z $IP ];then
-    IP=$(hostname)
-fi
-if [ ! -d $HISTDIR ];then
-    mkdir -p $HISTDIR
-    chmod 777 $HISTDIR
-fi
-if [ ! -d $HISTDIR/$LOGNAME ];then
-    mkdir -p $HISTDIR/$LOGNAME
-    chmod 300 $HISTDIR/$LOGNAME
-fi
-export HISTSIZE=4000
-#DateTime=$(date +%F_%T)
-DateTime=$(date +%F_%H%M%S)
-export HISTFILE="$HISTDIR/$LOGNAME/$IP.histroy.$DateTime"
-HISTTIMEFORMAT='%F %T '  
-chmod 600 $HISTDIR/$LOGNAME/*.history.* 2>/dev/null
-EOF
+    cat ${DATA_DIR}/bashrc >> ~/.bashrc
+    cat ${DATA_DIR}/profile >> /etc/profile
 }
 
 function update_vim() {
@@ -102,7 +72,6 @@ function update_vim() {
 }
 
 function install_package_common() {
-    #install package
     echo "===install packages==="  
     check_apt_process
     apt-get install -y git python3-pip ipython3 redis etcd mongodb postgresql
@@ -120,7 +89,6 @@ function stop_apt_daily() {
     systemctl disable apt-daily.service
     systemctl mask apt-daily.service
     systemctl daemon-reload
-
 }
 
 function check_apt_process() {
