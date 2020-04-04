@@ -63,7 +63,7 @@ function update_env() {
         mkdir /root/.backup
     fi
     cat ${DATA_DIR}/bashrc >> ~/.bashrc
-    cat ${DATA_DIR}/profile >> /etc/profile
+    cp ${DATA_DIR}/history.sh /etc/profile.d/
 }
 
 function update_vim() {
