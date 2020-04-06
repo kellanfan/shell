@@ -74,10 +74,10 @@ function update_vim() {
 function install_package_common() {
     echo "===install packages==="  
     check_apt_process
-    apt-get install -y git python3-pip ipython3 redis etcd mongodb postgresql
     curl -sSL https://get.daocloud.io/docker | sh
-    pip3 install virtualenv
-    pip3 install virtualenvwrapper
+    apt-get install -y docker-compose mongodb-clients \
+                        postgresql-client-10 etcd-client \
+                        redis-tools bridge-utils dos2unix
 }
 
 function stop_apt_daily() {
@@ -127,25 +127,36 @@ function init_shadownsocks() {
     systemctl enable shadowsocks.service
 }
 
-function config_service() {
-    # etcd
-    sed -i '/ETCD_LISTEN_CLIENT_URLS/aETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
-    sed -i '/ETCD_ADVERTISE_CLIENT_URLS/aETCD_ADVERTISE_CLIENT_URLS="http://0.0.0.0:2379"' /etc/default/etcd
-    systemctl restart etcd
-    systemctl enable etcd
-    # redis
-    sed -i '/^bind/s/^/#/' /etc/redis/redis.conf
-    sed -i '/bind 127.0.0.1/abind *' /etc/redis/redis.conf
-    systemctl restart redis
-    systemctl enable redis
-    # mongodb
-    sed -i 's/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/' /etc/mongodb.conf
-    systemctl restart mongodb
-    systemctl enable mongodb
-    # postgresql
-    sed -i "/listen_addresses/alisten_addresses = \'*\'" /etc/postgresql/10/main/postgresql.conf
-    systemctl restart postgresql
-    systemctl enable postgresql
+function docker_service() {
+    echo "start service in docker.."
+    if [ ! -d ${SERVICE_DIR} ];then
+        for item in ${SERVICE_MAP};do
+            mkdir -p ${SERVICE_DIR}/${item}
+        done
+    fi
+    docker network create kellan
+    sed -i "/POSTGRESQL_INIT_PASS/s/POSTGRESQL_INIT_PASS/${POSTGRESQL_INIT_PASS}/" ${DATA_DIR}/service-compose.yml
+    docker-compose -f ${DATA_DIR}/service-compose.yml up -d
+}
+
+function build_docker_image() {
+    echo "builf docker image.."
+    for item in $(ls -1 ${DATA_DIR}/Dfiles);do
+        cd ${DATA_DIR}/Dfiles/${item}
+        docker build -t kellan/${item} .
+    done
+}
+
+function make_crontab() {
+    cp ${DATA_DIR}/cleanup.sh /usr/local/sbin/
+    cp ${DATA_DIR}/pgbackup.sh ${DATA_DIR}/pgbackup.conf /usr/local/sbin/
+    cp ${DATA_DIR}/clean-docker /usr/local/sbin/
+    chmod +x /usr/local/sbin/pgbackup.sh
+    chmod +x /usr/local/sbin/cleanup.sh
+    chmod +x /usr/local/sbin/clean-docker
+    echo "0 10 28-31 * * /bin/bash /usr/local/sbin/cleanup.sh" >> /var/spool/cron/crontabs/root
+    echo "5 9 * * * docker run --rm --network=kellan -v /usr/local/sbin:/usr/local/sbin -v /data/backup/pg:/opt/pgbackup kellan/qingcloud /usr/local/sbin/pgbackup.sh" >> /var/spool/cron/crontabs/root
+    echo "0 9 * * 1,4 docker run --rm --network=kellan -v /var/log/spider:/var/log/spider -v /root/spiderman:/root/spiderman kellan/spider /root/spiderman/dytt.py" >> /var/spool/cron/crontabs/root
 }
 
 function log() {
@@ -191,10 +202,13 @@ function main() {
         SafeExec update_apt
         SafeExec install_package_common
         SafeExec stop_apt_daily
-        SafeExec config_service
+        SafeExec docker_service
         SafeExec update_vim
         SafeExec update_ssh
         SafeExec update_env
+        SafeExec make_crontab
+        SafeExec build_docker_image
+        
     elif [[ "x$1" == "xshadow" ]];then
         echo "===begin to shadow mode==="
         log "===begin to shadow mode==="
