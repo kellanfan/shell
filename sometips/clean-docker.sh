@@ -7,7 +7,7 @@
 #######################################################################
 
 echo "清除容器..."
-cn_list=`docker ps -qa`
+cn_list=`docker ps -a| grep -Ev 'CONTAINER|Up'|awk '{print $1}'`
 for i in $cn_list;do
     docker rm $i
 done
