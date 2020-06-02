@@ -154,7 +154,7 @@ function make_crontab() {
     chmod +x /usr/local/sbin/pgbackup.sh
     chmod +x /usr/local/sbin/cleanup.sh
     chmod +x /usr/local/sbin/clean-docker
-    echo "0 10 28-31 * * /bin/bash /usr/local/sbin/cleanup.sh" >> /var/spool/cron/crontabs/root
+    echo "0 10 28-31 * * [ `date +%d -d tomorrow` = 01 ] && /bin/bash /usr/local/sbin/cleanup.sh" >> /var/spool/cron/crontabs/root
     echo "5 9 * * * docker run --rm --network=kellan -v /usr/local/sbin:/usr/local/sbin -v /data/backup/pg:/opt/pgbackup kellan/qingcloud /usr/local/sbin/pgbackup.sh" >> /var/spool/cron/crontabs/root
     echo "0 9 * * 1,4 docker run --rm --network=kellan -v /var/log/spider:/var/log/spider -v /root/spiderman:/root/spiderman kellan/spider /root/spiderman/dytt.py" >> /var/spool/cron/crontabs/root
 }
