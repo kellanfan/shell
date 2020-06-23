@@ -81,6 +81,7 @@ function install_package_common() {
 }
 
 function stop_apt_daily() {
+    echo "===stop apt daily==="
     apt-get -y remove unattended-upgrades
     systemctl kill --kill-who=all apt-daily.service
     systemctl stop apt-daily.timer
@@ -92,7 +93,7 @@ function stop_apt_daily() {
 }
 
 function check_apt_process() {
-    echo "Check apt process, Make sure there is no apt process"
+    echo "===Check apt process, Make sure there is no apt process==="
     while true;do
         kill -9 $(pgrep apt)
         sleep 1
@@ -128,7 +129,7 @@ function init_shadownsocks() {
 }
 
 function docker_service() {
-    echo "start service in docker.."
+    echo "===start service in docker==="
     if [ ! -d ${SERVICE_DIR} ];then
         for item in ${SERVICE_MAP};do
             mkdir -p ${SERVICE_DIR}/${item}
@@ -140,7 +141,7 @@ function docker_service() {
 }
 
 function build_docker_image() {
-    echo "builf docker image.."
+    echo "===build docker image==="
     for item in $(ls -1 ${DATA_DIR}/Dfiles);do
         cd ${DATA_DIR}/Dfiles/${item}
         docker build -t kellan/${item} .
@@ -148,6 +149,7 @@ function build_docker_image() {
 }
 
 function make_crontab() {
+    echo "===make crontab==="
     cp ${DATA_DIR}/cleanup.sh /usr/local/sbin/
     cp ${DATA_DIR}/pgbackup.sh ${DATA_DIR}/pgbackup.conf /usr/local/sbin/
     cp ${DATA_DIR}/clean-docker /usr/local/sbin/
