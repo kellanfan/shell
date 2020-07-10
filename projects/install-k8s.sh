@@ -67,7 +67,14 @@ EOF
 function install_docker() {
     echo "install docker..."
     curl -sSL https://get.daocloud.io/docker | sh
-    systemctl start docker
+    cat > /etc/docker/daemon.json << EOF
+{
+  "insecure-registries": ["192.168.1.4"],
+  "registry-mirrors": ["http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
+}
+EOF
+    systemctl daemon-reload
+    systemctl restart docker
     systemctl enable docker
 }
 
