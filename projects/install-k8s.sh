@@ -12,9 +12,15 @@ CWD=$(dirname ${SCRIPT})
 log_file=/var/log/install_k8s.log
 
 function prepare() {
+    ping -c 1 -w 1 www.baidu.com > /dev/null
+    if [ $? -ne 0 ]; then
+        echo "Can not connect internet..."
+        exit 1
+    fi
     systemctl stop ufw
     swapoff -a
-    sed -i '/YUNIFYSWAP/s/^/#/' /etc/fstab
+    sed -i '/SWAP/s/^/#/' /etc/fstab
+    sed -i '/swap/s/^/#/' /etc/fstab
     hostnamectl set-hostname k8s
     grep 'kubectl completion bash' /root/.bashrc || echo "source <(kubectl completion bash)" >> /root/.bashrc
 }
@@ -120,6 +126,9 @@ function install_calico() {
 function install_harbor() {
     wget https://github.com/goharbor/harbor/releases/download/v2.0.1/harbor-online-installer-v2.0.1.tgz
     tar zxf harbor-online-installer-v2.0.1.tgz -C /opt
+    wget https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64
+    mv docker-compose-Linux-x86_64 /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
     mv /opt/harbor/harbor.yml.tmpl /opt/harbor/harbor.yml
     ip=$(ifconfig eth0 |grep 'inet '| awk '{print $2}')
     sed -i "/hostname/s/reg.mydomain.com/${ip}/" /opt/harbor/harbor.yml
@@ -164,7 +173,7 @@ function main() {
     SafeExec pull_images
     SafeExec init_k8s
     SafeExec install_calico
-    SafeExec install_harbors
+    SafeExec install_harbor
 }
 
 main
