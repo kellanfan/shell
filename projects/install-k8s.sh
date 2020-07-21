@@ -126,9 +126,11 @@ function install_calico() {
 function install_harbor() {
     wget https://github.com/goharbor/harbor/releases/download/v2.0.1/harbor-online-installer-v2.0.1.tgz
     tar zxf harbor-online-installer-v2.0.1.tgz -C /opt
-    wget https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64
-    mv docker-compose-Linux-x86_64 /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+    docker-compose --version > /dev/null
+    if [ $? -ne 0 ];then
+        wget https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m) -O /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+    fi
     mv /opt/harbor/harbor.yml.tmpl /opt/harbor/harbor.yml
     ip=$(ifconfig eth0 |grep 'inet '| awk '{print $2}')
     sed -i "/hostname/s/reg.mydomain.com/${ip}/" /opt/harbor/harbor.yml
