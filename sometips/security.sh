@@ -7,15 +7,7 @@
 #######################################################################
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname ${SCRIPT})
-sglist=$(cat $CWD/sglist)
 
-if [ ! -d "${CWD}/actionlog" ];then
-	mkdir ${CWD}/actionlog
-fi
-
-if [ ! -d "${CWD}/joblog" ];then
-	mkdir ${CWD}/joblog
-fi
 
 check_job() {
 	sg=$1
@@ -36,9 +28,34 @@ check_action() {
 		echo "${sg} addRule is successful..."
 	else
 		echo "${sg} addRule is failed..."
-		exit 1
+		exit 3
 	fi
 }
+
+function Usage() {
+	echo "Usage:  $0 <security_group_idlist_file>"
+	echo "Example: $0 aa.txt"
+}
+
+if [ ! -d "${CWD}/actionlog" ];then
+	mkdir ${CWD}/actionlog
+fi
+
+if [ ! -d "${CWD}/joblog" ];then
+	mkdir ${CWD}/joblog
+fi
+
+if [ $# -ne 1 ];then
+	Usage
+	exit 1
+fi
+
+if [ -f "$1" ];then
+	sglist=$(cat $1)
+else
+	echo "ERROR: can not find the sg_list_file: [$1]"
+	exit 2
+fi
 
 cd /pitrix/cli/
 for sg in ${sglist};do
