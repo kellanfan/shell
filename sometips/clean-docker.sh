@@ -19,21 +19,21 @@ function SafeExec() {
 }
 function clean_container() {
     # 清除容器
-    cn_list=`docker ps -a| grep -Ev 'CONTAINER|Up'|awk '{print $1}'`
+    cn_list=$(docker ps -a| grep -Ev 'CONTAINER|Up'|awk '{print $1}')
     for i in $cn_list;do
         docker rm $i
     done
 }
 function clean_image() {
     # 清除dangling image
-    dl_image=`docker images -q -f dangling=true`
+    dl_image=$(docker images -q -f dangling=true)
     for j in $dl_image;do
         docker rmi $j
     done
 }
 function clean_volume() {
     # 清除虚悬volume
-    dl_volume=`docker volume ls -qf dangling=true`
+    dl_volume=$(docker volume ls -qf dangling=true)
     for g in $dl_volume;do
         docker volume rm $g
     done
