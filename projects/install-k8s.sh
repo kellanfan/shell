@@ -7,10 +7,11 @@
 ##############################################################
 
 #### common variable ####
+
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname ${SCRIPT})
 log_file=/var/log/install_k8s.log
-
+component_list=('kube-apiserver' 'kube-proxy' 'kube-controller-manager' 'kube-scheduler')
 function prepare() {
     ping -c 1 -w 1 www.baidu.com > /dev/null
     if [ $? -ne 0 ]; then
@@ -75,7 +76,7 @@ function install_docker() {
     curl -sSL https://get.daocloud.io/docker | sh
     cat > /etc/docker/daemon.json << EOF
 {
-  "insecure-registries": ["192.168.1.4"],
+  "insecure-registries": ["hub.kellan.com"],
   "registry-mirrors": ["http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
 }
 EOF
@@ -93,17 +94,13 @@ function install_kube() {
 
 function pull_images() {
     echo "Pull images..."
-    docker pull registry.aliyuncs.com/google_containers/kube-apiserver:v1.18.0         
-    docker pull registry.aliyuncs.com/google_containers/kube-proxy:v1.18.0             
-    docker pull registry.aliyuncs.com/google_containers/kube-controller-manager:v1.18.0  
-    docker pull registry.aliyuncs.com/google_containers/kube-scheduler:v1.18.0        
+    for comp in ${component_list}:
+        docker pull registry.aliyuncs.com/google_containers/${comp}:v1.18.0  
+        docker tag registry.aliyuncs.com/google_containers/${comp}:v1.18.0 k8s.gcr.io/${comp}:v1.18.0
+        docker rmi registry.aliyuncs.com/google_containers/${comp}:v1.18.0              
     docker pull registry.aliyuncs.com/google_containers/etcd:3.4.3-0         
     docker pull registry.aliyuncs.com/google_containers/coredns:1.6.7                                                  
     docker pull registry.aliyuncs.com/google_containers/pause:3.2 
-    docker tag registry.aliyuncs.com/google_containers/kube-apiserver:v1.18.0 k8s.gcr.io/kube-apiserver:v1.18.0
-    docker tag registry.aliyuncs.com/google_containers/kube-proxy:v1.18.0 k8s.gcr.io/kube-proxy:v1.18.0
-    docker tag registry.aliyuncs.com/google_containers/kube-controller-manager:v1.18.0 k8s.gcr.io/kube-controller-manager:v1.18.0
-    docker tag registry.aliyuncs.com/google_containers/kube-scheduler:v1.18.0 k8s.gcr.io/kube-scheduler:v1.18.0
     docker tag registry.aliyuncs.com/google_containers/etcd:3.4.3-0 k8s.gcr.io/etcd:3.4.3-0
     docker tag registry.aliyuncs.com/google_containers/coredns:1.6.7 k8s.gcr.io/coredns:1.6.7
     docker tag registry.aliyuncs.com/google_containers/pause:3.2 k8s.gcr.io/pause:3.2
