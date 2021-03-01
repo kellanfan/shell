@@ -5,8 +5,6 @@ CWD=$(dirname $SCRIPT)
 LOG_FILE="${CWD}/log/scp_nodes.log"
 nodeDIR="${CWD}/nodes"
 CONF_DIR="${CWD}/conf"
-src=$2
-dst=$3
 #####FUNC#########
 usage() {
     echo "Usage: $(basename $0) <node> <src> <dst>"
@@ -55,6 +53,15 @@ else
     user=$(whoami)
     port=22
 fi
+
+if [[ "x$1" == "x-f" ]] || [[ "x$1" == "x--force-yes" ]]; then
+    option="--force-yes"
+    shift
+else
+    option=""
+fi
+src=$2
+dst=$3
 # get nodes info
 if [ -d $nodeDIR ]; then
     if [ -f $nodeDIR/${1} ];then
@@ -76,7 +83,14 @@ echo -e "SRC:\n     ${src}"
 echo "----------------------------------"
 echo -e "DEST:\n    ${dst}"
 echo "----------------------------------"
-var=$(confirm "Are you sure to exec the scp command?")
+var=0
+if [[ "x$option" != "x--force-yes" ]]; then
+    var=$(confirm "Are you sure to exec the command on the above nodes [y/N]")
+    if [ $var -ne 0 ]; then
+        exit 0
+    fi
+fi
+
 if [ $var -eq 0 ];then 
     for node in "${nodes[@]}"; do
         echo -en "Execing scp $src to ${node}:${dst}..\n"
