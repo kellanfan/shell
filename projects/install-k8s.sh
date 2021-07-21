@@ -10,8 +10,8 @@
 
 SCRIPT=$(readlink -f $0)
 CWD=$(dirname ${SCRIPT})
-log_file=/var/log/install_k8s.log
-component_list=('kube-apiserver' 'kube-proxy' 'kube-controller-manager' 'kube-scheduler')
+LOG_FILE=/var/log/install_k8s.log
+
 function prepare() {
     ping -c 1 -w 1 www.baidu.com > /dev/null
     if [ $? -ne 0 ]; then
@@ -27,7 +27,7 @@ function prepare() {
 }
 
 function stop_apt_daily() {
-    apt-get -y remove unattended-upgrades
+    apt-get -y purge unattended-upgrades snapd
     systemctl kill --kill-who=all apt-daily.service
     systemctl stop apt-daily.timer
     systemctl disable apt-daily.timer
@@ -52,6 +52,15 @@ function check_apt_process() {
     rm /var/lib/dpkg/lock
 }
 
+function modify_dns(){
+    systemctl disable systemd-resolved 
+    systemctl stop systemd-resolved 
+    rm /etc/resolv.conf
+    touch /etc/resolv.conf
+    echo "nameserver 114.114.114.114" >> /etc/resolv.conf
+    echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+}
+
 function update_repo() {
     echo "Update repo..."
     cat > /etc/apt/sources.list << EOF
@@ -73,7 +82,7 @@ EOF
 
 function install_docker() {
     echo "install docker..."
-    curl -sSL https://get.daocloud.io/docker | sh
+    apt install -y docker.io
     cat > /etc/docker/daemon.json << EOF
 {
   "insecure-registries": ["hub.kellan.com"],
@@ -94,21 +103,25 @@ function install_kube() {
 
 function pull_images() {
     echo "Pull images..."
-    for comp in ${component_list}:
-        docker pull registry.aliyuncs.com/google_containers/${comp}:v1.18.0  
-        docker tag registry.aliyuncs.com/google_containers/${comp}:v1.18.0 k8s.gcr.io/${comp}:v1.18.0
-        docker rmi registry.aliyuncs.com/google_containers/${comp}:v1.18.0              
-    docker pull registry.aliyuncs.com/google_containers/etcd:3.4.3-0         
-    docker pull registry.aliyuncs.com/google_containers/coredns:1.6.7                                                  
-    docker pull registry.aliyuncs.com/google_containers/pause:3.2 
-    docker tag registry.aliyuncs.com/google_containers/etcd:3.4.3-0 k8s.gcr.io/etcd:3.4.3-0
-    docker tag registry.aliyuncs.com/google_containers/coredns:1.6.7 k8s.gcr.io/coredns:1.6.7
-    docker tag registry.aliyuncs.com/google_containers/pause:3.2 k8s.gcr.io/pause:3.2
+    for image in $(kubeadm config images list | awk -F'io/' '{print $2}');do
+        if [[ ${image} =~ coredns ]];then
+            IMAGE_VERSION=$(echo ${image} | awk -F'/' '{print $2}')
+            docker pull registry.aliyuncs.com/google_containers/${IMAGE_VERSION} || docker pull registry.aliyuncs.com/google_containers/coredns
+            CUR_VERSION=$(docker images| grep google_containers/coredns | awk '{print $2}')
+            docker tag registry.aliyuncs.com/google_containers/coredns:${CUR_VERSION} k8s.gcr.io/${image}
+            docker rmi registry.aliyuncs.com/google_containers/coredns:${CUR_VERSION}
+        else
+            docker pull registry.aliyuncs.com/google_containers/${image}
+            docker tag registry.aliyuncs.com/google_containers/${image} k8s.gcr.io/${image}
+            docker rmi registry.aliyuncs.com/google_containers/${image}
+        fi
+    done
 }
 
 function init_k8s() {
     echo "Init k8s..."
-    kubeadm init  --kubernetes-version=v1.18.0  --service-cidr=10.96.0.0/12 --pod-network-cidr=10.96.0.0/16  --ignore-preflight-errors=Swap
+    KUBE_VERSION=$(kubeadm config images list |grep kube-apiserver| awk -F'/|:' '{print $3}')
+    kubeadm init  --kubernetes-version=${KUBE_VERSION} --service-cidr=10.96.0.0/12 --pod-network-cidr=10.96.0.0/16  --ignore-preflight-errors=Swap
     mkdir -p /root/.kube
     cp -i /etc/kubernetes/admin.conf /root/.kube/config
     chown root.root /root/.kube/config
@@ -116,8 +129,10 @@ function init_k8s() {
 
 function install_calico() {
     echo "Install calico..."
-    wget https://docs.projectcalico.org/v3.10/manifests/calico.yaml
-    kubectl apply -f calico.yaml
+    kubectl apply -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+    wget https://docs.projectcalico.org/manifests/custom-resources.yaml
+    sed -i '/cidr/s/192.168/10.96/' custom-resources.yaml
+    kubectl apply -f custom-resources.yaml
 }
 
 function install_harbor() {
@@ -136,43 +151,78 @@ function install_harbor() {
     ./install.sh
 }
 
+function untaint_master() {
+    kubectl taint node k8s node-role.kubernetes.io/master:NoSchedule-
+}
+
+function add_role_to_coredns() {
+    kubectl -n kube-system get clusterrole system:coredns -o yaml > clusterrole-coredns.yaml
+    sed -i '/resourceVersion/d' clusterrole-coredns.yaml
+    cat >> clusterrole-coredns.yaml << EOF
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - list
+  - watch
+  - get
+EOF
+    kubectl apply -f clusterrole-coredns.yaml
+    kubectl -n kube-system scale deployment coredns --replicas=0
+    kubectl -n kube-system scale deployment coredns --replicas=1
+}
+
 function SafeExec() {
     local cmd=$1
     echo -n "Execing the step [${cmd}]..."
     log "Execing the step [${cmd}]..."
-    ${cmd} >>${log_file} 2>&1
+    grep ${cmd} ${SCRIPT}.flag > /dev/null
     if [ $? -eq 0 ];then
-        echo -n "OK." && echo ""
-        log "Exec the step [${cmd}] OK."
+        echo -n "Skip." && echo ""
     else
-        echo -n "Error!" && echo ""
-        log "Exec the function [${cmd}] Error!"
-        exit 1
+        ${cmd} >>${LOG_FILE} 2>&1
+        if [ $? -eq 0 ];then
+            echo -n "OK." && echo ""
+            log "Exec the step [${cmd}] OK."
+            echo ${cmd} >> ${SCRIPT}.flag
+        else
+            echo -n "Error!" && echo ""
+            log "Exec the function [${cmd}] Error!"
+            exit 1
+        fi
     fi
 }
 
 function log() {
     msg=$*
     DATE=$(date +'%Y-%m-%d %H:%M:%S')
-    echo "${DATE} ${msg}" >> ${log_file}
+    echo "${DATE} ${msg}" >> ${LOG_FILE}
 }
+
 
 function main() {
     if [ `id -u` -ne 0 ];then
         echo "Not Root!!!"
         exit 1
     fi
+    if [ !-f ${SCRIPT}.flag ];then
+        touch ${SCRIPT}.flag
+    fi
 
     SafeExec prepare
     SafeExec check_apt_process
     SafeExec update_repo
     SafeExec stop_apt_daily
+    SafeExec modify_dns
     SafeExec install_docker
     SafeExec install_kube
     SafeExec pull_images
     SafeExec init_k8s
     SafeExec install_calico
-    SafeExec install_harbor
+    SafeExec untaint_master
+    SafeExec add_role_to_coredns
+    #SafeExec install_harbor
 }
 
 main
