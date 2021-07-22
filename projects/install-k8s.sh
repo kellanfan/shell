@@ -152,7 +152,7 @@ function install_harbor() {
 }
 
 function untaint_master() {
-    kubectl taint node k8s node-role.kubernetes.io/master:NoSchedule-
+    kubectl taint node $(hostname) node-role.kubernetes.io/master:NoSchedule-
 }
 
 function add_role_to_coredns() {
@@ -199,30 +199,51 @@ function log() {
     DATE=$(date +'%Y-%m-%d %H:%M:%S')
     echo "${DATE} ${msg}" >> ${LOG_FILE}
 }
-
+function Usage() {
+    echo "$0 <master|node>"
+}
 
 function main() {
     if [ `id -u` -ne 0 ];then
         echo "Not Root!!!"
         exit 1
     fi
-    if [ !-f ${SCRIPT}.flag ];then
-        touch ${SCRIPT}.flag
+    if [ $# -ne 1 ];then
+        Usage
+        exit 1
+    fi
+    if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
+        Usage
+        exit 1
     fi
 
-    SafeExec prepare
-    SafeExec check_apt_process
-    SafeExec update_repo
-    SafeExec stop_apt_daily
-    SafeExec modify_dns
-    SafeExec install_docker
-    SafeExec install_kube
-    SafeExec pull_images
-    SafeExec init_k8s
-    SafeExec install_calico
-    SafeExec untaint_master
-    SafeExec add_role_to_coredns
-    #SafeExec install_harbor
+    if [ ! -f ${SCRIPT}.flag ];then
+        touch ${SCRIPT}.flag
+    fi
+    if [[ "x$1" == "xmaster" ]];then
+        SafeExec prepare
+        SafeExec check_apt_process
+        SafeExec update_repo
+        SafeExec stop_apt_daily
+        SafeExec modify_dns
+        SafeExec install_docker
+        SafeExec install_kube
+        SafeExec pull_images
+        SafeExec init_k8s
+        SafeExec install_calico
+        SafeExec untaint_master
+        SafeExec add_role_to_coredns
+        #SafeExec install_harbor
+    elif [[ "x$1" == "xnode" ]];then
+        SafeExec prepare
+        SafeExec check_apt_process
+        SafeExec update_repo
+        SafeExec stop_apt_daily
+        SafeExec modify_dns
+        SafeExec install_docker
+        SafeExec install_kube
+        
+    fi
 }
 
-main
+main $1
