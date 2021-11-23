@@ -22,7 +22,6 @@ function prepare() {
     swapoff -a
     sed -i '/SWAP/s/^/#/' /etc/fstab
     sed -i '/swap/s/^/#/' /etc/fstab
-    hostnamectl set-hostname k8s
     grep 'kubectl completion bash' /root/.bashrc || echo "source <(kubectl completion bash)" >> /root/.bashrc
 }
 
@@ -85,7 +84,8 @@ function install_docker() {
     apt install -y docker.io
     cat > /etc/docker/daemon.json << EOF
 {
-  "insecure-registries": ["hub.kellan.com"],
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "insecure-registries": ["172.23.1.2"],
   "registry-mirrors": ["http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
 }
 EOF
@@ -155,22 +155,11 @@ function untaint_master() {
     kubectl taint node $(hostname) node-role.kubernetes.io/master:NoSchedule-
 }
 
-function add_role_to_coredns() {
-    kubectl -n kube-system get clusterrole system:coredns -o yaml > clusterrole-coredns.yaml
-    sed -i '/resourceVersion/d' clusterrole-coredns.yaml
-    cat >> clusterrole-coredns.yaml << EOF
-- apiGroups:
-  - discovery.k8s.io
-  resources:
-  - endpointslices
-  verbs:
-  - list
-  - watch
-  - get
-EOF
-    kubectl apply -f clusterrole-coredns.yaml
-    kubectl -n kube-system scale deployment coredns --replicas=0
-    kubectl -n kube-system scale deployment coredns --replicas=1
+function join_cluster() {
+    part1=$(ssh ${master_ip} "grep 'kubeadm join' /var/log/install_k8s.log | tr '\' ' '")
+    part2=$(ssh ${master_ip} "grep 'discovery-token-ca-cert-hash' /var/log/install_k8s.log")
+    join_cmd="${part1} ${part2}"
+    ${join_cmd}
 }
 
 function SafeExec() {
@@ -200,7 +189,7 @@ function log() {
     echo "${DATE} ${msg}" >> ${LOG_FILE}
 }
 function Usage() {
-    echo "$0 <master|node>"
+    echo "$0 <master|node master_ip>"
 }
 
 function main() {
@@ -208,10 +197,7 @@ function main() {
         echo "Not Root!!!"
         exit 1
     fi
-    if [ $# -ne 1 ];then
-        Usage
-        exit 1
-    fi
+
     if [[ "x$1" == "x-h" ]] || [[ "x$1" == "x--help" ]]; then
         Usage
         exit 1
@@ -220,6 +206,7 @@ function main() {
     if [ ! -f ${SCRIPT}.flag ];then
         touch ${SCRIPT}.flag
     fi
+    
     if [[ "x$1" == "xmaster" ]];then
         SafeExec prepare
         SafeExec check_apt_process
@@ -232,9 +219,14 @@ function main() {
         SafeExec init_k8s
         SafeExec install_calico
         SafeExec untaint_master
-        SafeExec add_role_to_coredns
+        #SafeExec add_role_to_coredns
         #SafeExec install_harbor
     elif [[ "x$1" == "xnode" ]];then
+        if [ $# -ne 2 ];then
+            Usage
+            exit 1
+        fi
+        master_ip=$2
         SafeExec prepare
         SafeExec check_apt_process
         SafeExec update_repo
@@ -242,8 +234,12 @@ function main() {
         SafeExec modify_dns
         SafeExec install_docker
         SafeExec install_kube
-        
+        SafeExec pull_images
+        SafeExec join_cluster
+    else
+        Usage
+        exit 1
     fi
 }
 
-main $1
+main $@
