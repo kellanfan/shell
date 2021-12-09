@@ -79,6 +79,10 @@ EOF
     apt-get update && apt-get install -y apt-transport-https
 }
 
+function install_common_package() {
+    echo "install common packages..."
+    apt install -y etcd-client ipset conntrack nfs-common
+}
 function install_docker() {
     echo "install docker..."
     apt install -y docker.io
@@ -96,7 +100,7 @@ EOF
 
 function install_kube() {
     echo "install kube..."
-    apt-get install -y kubelet kubeadm kubectl
+    apt-get install -y kubelet=${KUBE_VERSION}-00 kubeadm=${KUBE_VERSION}-00 kubectl=${KUBE_VERSION}-00
     systemctl daemon-reload
     systemctl enable kubelet
 }
@@ -120,7 +124,7 @@ function pull_images() {
 
 function init_k8s() {
     echo "Init k8s..."
-    KUBE_VERSION=$(kubeadm config images list |grep kube-apiserver| awk -F'/|:' '{print $3}')
+    #KUBE_VERSION=$(kubeadm config images list |grep kube-apiserver| awk -F'/|:' '{print $3}')
     kubeadm init  --kubernetes-version=${KUBE_VERSION} --service-cidr=10.96.0.0/12 --pod-network-cidr=10.96.0.0/16  --ignore-preflight-errors=Swap
     mkdir -p /root/.kube
     cp -i /etc/kubernetes/admin.conf /root/.kube/config
@@ -156,9 +160,10 @@ function untaint_master() {
 }
 
 function join_cluster() {
-    part1=$(ssh ${master_ip} "grep 'kubeadm join' /var/log/install_k8s.log | tr '\' ' '")
-    part2=$(ssh ${master_ip} "grep 'discovery-token-ca-cert-hash' /var/log/install_k8s.log")
+    part1=$(ssh ${MASTER_IP} "grep 'kubeadm join' /var/log/install_k8s.log | tr '\' ' '")
+    part2=$(ssh ${MASTER_IP} "grep 'discovery-token-ca-cert-hash' /var/log/install_k8s.log")
     join_cmd="${part1} ${part2}"
+    #join_cmd="ssh ${MASTER_IP} kubeadm token create --print-join-command"
     ${join_cmd}
 }
 
@@ -189,7 +194,7 @@ function log() {
     echo "${DATE} ${msg}" >> ${LOG_FILE}
 }
 function Usage() {
-    echo "$0 <master|node master_ip>"
+    echo "$0 <master K8S_VERSION|node K8S_VERSION MASTER_IP>"
 }
 
 function main() {
@@ -208,11 +213,17 @@ function main() {
     fi
     
     if [[ "x$1" == "xmaster" ]];then
+        if [ $# -ne 2 ];then
+            Usage
+            exit 1
+        fi
+        KUBE_VERSION=$2
         SafeExec prepare
         SafeExec check_apt_process
         SafeExec update_repo
         SafeExec stop_apt_daily
         SafeExec modify_dns
+        SafeExec install_common_package
         SafeExec install_docker
         SafeExec install_kube
         SafeExec pull_images
@@ -222,16 +233,18 @@ function main() {
         #SafeExec add_role_to_coredns
         #SafeExec install_harbor
     elif [[ "x$1" == "xnode" ]];then
-        if [ $# -ne 2 ];then
+        if [ $# -ne 3 ];then
             Usage
             exit 1
         fi
-        master_ip=$2
+        KUBE_VERSION=$2
+        MASTER_IP=$3
         SafeExec prepare
         SafeExec check_apt_process
         SafeExec update_repo
         SafeExec stop_apt_daily
         SafeExec modify_dns
+        SafeExec install_common_package
         SafeExec install_docker
         SafeExec install_kube
         SafeExec pull_images
