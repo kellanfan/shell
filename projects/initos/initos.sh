@@ -105,6 +105,7 @@ function check_apt_process() {
     rm /var/lib/apt/lists/lock
     rm /var/cache/apt/archives/lock
     rm /var/lib/dpkg/lock
+    rm /var/lib/dpkg/lock-frontend
 }
 
 function install_package_shadow() {
