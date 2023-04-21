@@ -79,6 +79,11 @@ EOF
     apt-get update && apt-get install -y apt-transport-https
 }
 
+function mount_data() {
+    mkdir -p /data/docker
+    mount /dev/vdc1 /data/docker
+}
+
 function install_common_package() {
     echo "install common packages..."
     apt install -y etcd-client ipset conntrack nfs-common
@@ -89,7 +94,8 @@ function install_docker() {
     cat > /etc/docker/daemon.json << EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "insecure-registries": ["172.23.1.2"],
+  "insecure-registries": ["10.90.25.5"],
+  "data-root": "/data/docker",
   "registry-mirrors": ["http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
 }
 EOF
@@ -133,8 +139,8 @@ function init_k8s() {
 
 function install_calico() {
     echo "Install calico..."
-    kubectl apply -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
-    wget https://docs.projectcalico.org/manifests/custom-resources.yaml
+    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
+    wget https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml
     sed -i '/cidr/s/192.168/10.96/' custom-resources.yaml
     kubectl apply -f custom-resources.yaml
 }
@@ -224,6 +230,7 @@ function main() {
         SafeExec stop_apt_daily
         SafeExec modify_dns
         SafeExec install_common_package
+        SafeExec mount_data
         SafeExec install_docker
         SafeExec install_kube
         SafeExec pull_images
